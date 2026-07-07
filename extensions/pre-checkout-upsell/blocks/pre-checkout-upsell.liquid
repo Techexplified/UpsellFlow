@@ -1,0 +1,351 @@
+<!-- Pre-checkout Upsell Modal -->
+<div id="pre-checkout-upsell-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 99999999; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 580px; width: 90%; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column;">
+    
+    <!-- Top Alert Banner -->
+    <div style="background: #fdf6e2; border-bottom: 1px solid #f9ebc7; padding: 14px 20px; display: flex; align-items: center; gap: 10px; position: relative;">
+      <span style="font-size: 18px;">⏳</span>
+      <span style="font-weight: 700; color: #8a6d3b; fontSize: 15px; letter-spacing: -0.01em;">Wait! Before we finalize your order...</span>
+      <!-- Close Button -->
+      <button id="upsell-close-btn" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(0,0,0,0.08); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #8a6d3b; line-height: 1; padding: 0; transition: background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.15)'" onmouseout="this.style.background='rgba(0,0,0,0.08)'">✕</button>
+    </div>
+
+    <!-- Content Area -->
+    <div style="padding: 24px 28px; display: flex; gap: 20px; flex-wrap: wrap;">
+      
+      <!-- Product Image Left -->
+      <div style="flex: 1; min-width: 160px; display: flex; justify-content: center; align-items: center;">
+        <div style="width: 180px; height: 180px; background-color: #f6f6f7; border-radius: 12px; border: 1px solid #e1e3e5; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+          <img id="upsell-product-image" src="" alt="Upsell Upgrade" width="180" height="180" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+      </div>
+
+      <!-- Content Details Right -->
+      <div style="flex: 1.2; min-width: 220px; display: flex; flex-direction: column; justify-content: center;">
+        <h3 id="upsell-title" style="margin: 0 0 10px 0; font-size: 19px; font-weight: 700; color: #202223; line-height: 1.35; letter-spacing: -0.01em;">
+          Upgrade and Save!
+        </h3>
+        
+        <!-- Price Display -->
+        <div style="display: flex; flex-direction: column; margin-bottom: 12px; font-family: inherit;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span id="upsell-original-price" style="color: #8c9196; font-size: 15px; text-decoration: line-through; font-weight: 500;">
+              $0.00
+            </span>
+            <span id="upsell-upgraded-price" style="color: #3630a3; font-size: 22px; font-weight: 700;">
+              $0.00
+            </span>
+          </div>
+          <div style="margin-top: 6px;">
+            <span id="upsell-save-badge" style="background-color: #eceefb; color: #3630a3; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px; display: inline-block;">
+              Save
+            </span>
+          </div>
+        </div>
+
+        <!-- One click checkout notice -->
+        <div style="background-color: #f9fafb; border: 1px solid #e1e3e5; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #6d7175; margin-bottom: 20px; display: flex; align-items: center; gap: 6px;">
+          <span>💳</span>
+          <span>One-click swap. No need to re-enter your details.</span>
+        </div>
+
+        <!-- Buttons -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button id="upsell-accept-btn" style="width: 100%; padding: 12px 16px; background-color: #3630a3; color: #ffffff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color 0.2s;">
+            Yes, Upgrade My Order
+          </button>
+          <button id="upsell-decline-btn" style="width: 100%; padding: 11px 16px; background-color: #f1f2f4; color: #202223; border: 1px solid #dfe3e8; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color 0.2s;">
+            No thanks, continue to checkout
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  // ─── READ OFFERS & SETTINGS FROM SHOP METAFIELDS (injected by Liquid) ───────
+  var activeOffers = [];
+  try {
+    var _raw = {{ shop.metafields.upsellflow.offers.value | default: "[]" | json }};
+    activeOffers = Array.isArray(_raw) ? _raw : [];
+  } catch(e) {
+    console.warn('[UpsellFlow] Metafield parse error:', e);
+  }
+
+  var appSettings = {};
+  try {
+    var _settingsRaw = {{ shop.metafields.upsellflow.settings.value | default: null | json }};
+    appSettings = _settingsRaw || {};
+  } catch(e) {
+    console.warn('[UpsellFlow] Settings parse error:', e);
+  }
+
+  console.log('[UpsellFlow] Loaded offers from metafield:', activeOffers.length, activeOffers);
+
+  var isIntercepted = false;
+  var checkoutButtonElement = null;
+  var pendingOffer = null;
+  var pendingVariantId = null;
+  var pendingQuantity = 1;
+
+  if (activeOffers.length === 0) {
+    console.log('[UpsellFlow] No active offers in metafield. Extension idle.');
+    return;
+  }
+
+  // ─── ANALYTICS EVENT TRACKING HELPER ─────────────────────────────────────────
+  function trackEvent(featureType, eventType, offerId, revenue) {
+    try {
+      var baseUrl = appSettings.appUrl
+        ? appSettings.appUrl.replace(/\/$/, "")
+        : 'https://' + window.location.hostname;
+
+      fetch(baseUrl + '/api/analytics-track', {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({
+          shop: '{{ shop.permanent_domain }}',
+          featureType: featureType,
+          eventType: eventType,
+          offerId: offerId || null,
+          revenue: revenue || 0
+        })
+      }).catch(function(e) {
+        console.warn('[UpsellFlow] Analytics track fetch failed:', e);
+      });
+    } catch(err) {
+      console.warn('[UpsellFlow] Analytics tracking error:', err);
+    }
+  }
+
+  // ─── INTERCEPT CHECKOUT CLICKS ───────────────────────────────────────────────
+  document.addEventListener('click', function(e) {
+    if (isIntercepted) return;
+
+    var target = e.target.closest('button, input[type="submit"], a[href]');
+    if (!target) return;
+
+    var text = (target.textContent || target.value || '').trim().toLowerCase();
+    var href = target.getAttribute('href') || '';
+    var name = target.getAttribute('name') || '';
+    var classes = target.className || '';
+
+    var isCheckout =
+      name === 'checkout' ||
+      href === '/checkout' ||
+      text === 'check out' ||
+      text === 'checkout' ||
+      classes.indexOf('cart__submit') > -1 ||
+      classes.indexOf('checkout-btn') > -1;
+
+    var isBuyNow =
+      classes.indexOf('shopify-payment-button__button') > -1;
+
+    if (!isCheckout && !isBuyNow) return;
+
+    console.log('[UpsellFlow] Intercepted click on:', target);
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    checkoutButtonElement = target;
+
+    handleCheckout(isBuyNow);
+  }, true);
+
+  // ─── FIND MAX-PROFIT SWAP ACROSS ALL CART ITEMS ──────────────────────────────
+  async function handleCheckout(isBuyNow) {
+    try {
+      var cartItems = [];
+
+      if (isBuyNow) {
+        var form = checkoutButtonElement.closest('form[action*="/cart/add"]');
+        if (form) {
+          var variantInput = form.querySelector('[name="id"]');
+          var qtyInput = form.querySelector('[name="quantity"]');
+          if (variantInput) {
+            cartItems = [{
+              variant_id: parseInt(variantInput.value),
+              quantity: parseInt((qtyInput && qtyInput.value) || 1),
+              price: 0
+            }];
+          }
+        }
+      }
+
+      if (cartItems.length === 0) {
+        var res = await fetch('/cart.js');
+        if (!res.ok) { resumeCheckout(); return; }
+        var cart = await res.json();
+        cartItems = cart.items || [];
+      }
+
+      console.log('[UpsellFlow] Cart items:', cartItems);
+
+      var bestMatch = null; // { offer, variantId, quantity, originalPrice, profit }
+
+      for (var i = 0; i < cartItems.length; i++) {
+        var item = cartItems[i];
+        var variantGid = 'gid://shopify/ProductVariant/' + item.variant_id;
+        var itemPrice = item.price ? (item.price / 100) : 0;
+
+        for (var j = 0; j < activeOffers.length; j++) {
+          var offer = activeOffers[j];
+          if (offer.triggerProductId !== variantGid) continue;
+
+          // Calculate revenue gain for this swap candidate
+          var triggerPrice = (typeof offer.triggerVariantPrice === 'number' && offer.triggerVariantPrice > 0)
+            ? offer.triggerVariantPrice
+            : itemPrice;
+          var upgradePrice = (typeof offer.upgradeVariantPrice === 'number' && offer.upgradeVariantPrice > 0)
+            ? offer.upgradeVariantPrice
+            : (triggerPrice + (offer.priceDifference || 0));
+          var profit = upgradePrice - triggerPrice;
+
+          console.log('[UpsellFlow] Candidate swap:', offer.upgradeProductTitle, '| revenue gain: $' + profit.toFixed(2));
+
+          // Keep only the highest-profit match
+          if (!bestMatch || profit > bestMatch.profit) {
+            bestMatch = {
+              offer: offer,
+              variantId: item.variant_id,
+              quantity: item.quantity || 1,
+              originalPrice: itemPrice,
+              profit: profit
+            };
+          }
+        }
+      }
+
+      if (bestMatch) {
+        console.log('[UpsellFlow] Best swap selected:', bestMatch.offer.upgradeProductTitle, '| max gain: $' + bestMatch.profit.toFixed(2));
+        pendingOffer = bestMatch.offer;
+        pendingVariantId = bestMatch.variantId;
+        pendingQuantity = bestMatch.quantity;
+        showModal(bestMatch.offer, bestMatch.originalPrice);
+        return;
+      }
+
+      console.log('[UpsellFlow] No matching offer. Proceeding to checkout.');
+      resumeCheckout();
+    } catch (err) {
+      console.error('[UpsellFlow] Error handling checkout:', err);
+      resumeCheckout();
+    }
+  }
+
+  // ─── SHOW UPSELL MODAL ───────────────────────────────────────────────────────
+  function showModal(offer, originalPrice) {
+    var modal = document.getElementById('pre-checkout-upsell-modal');
+    if (!modal) { resumeCheckout(); return; }
+
+    var imgEl = document.getElementById('upsell-product-image');
+    if (imgEl) imgEl.src = offer.upgradeProductImage || '';
+
+    var titleEl = document.getElementById('upsell-title');
+    if (titleEl) {
+      var cleanTitle = (offer.upgradeProductTitle || '').replace(' - Default Title', '');
+      titleEl.textContent = 'Upgrade to ' + cleanTitle + '!';
+    }
+
+    var oldPrice = (typeof offer.triggerVariantPrice === 'number' && offer.triggerVariantPrice > 0) ? offer.triggerVariantPrice : originalPrice;
+    var newPrice = (typeof offer.upgradeVariantPrice === 'number' && offer.upgradeVariantPrice > 0) ? offer.upgradeVariantPrice : (oldPrice + (offer.priceDifference || 0));
+    var priceDiff = newPrice - oldPrice;
+
+    var origEl = document.getElementById('upsell-original-price');
+    if (origEl) origEl.textContent = '$' + oldPrice.toFixed(2);
+
+    var upgradedEl = document.getElementById('upsell-upgraded-price');
+    if (upgradedEl) upgradedEl.textContent = '$' + newPrice.toFixed(2);
+
+    var badge = document.getElementById('upsell-save-badge');
+    if (badge) {
+      if (priceDiff > 0) {
+        badge.textContent = '+$' + priceDiff.toFixed(2) + ' upcharge';
+        badge.style.backgroundColor = '#eceefb';
+        badge.style.color = '#3630a3';
+      } else if (priceDiff === 0) {
+        badge.textContent = 'FREE upgrade';
+        badge.style.backgroundColor = '#e2f1e5';
+        badge.style.color = '#107c10';
+      } else {
+        badge.textContent = 'Save $' + Math.abs(priceDiff).toFixed(2);
+        badge.style.backgroundColor = '#e2f1e5';
+        badge.style.color = '#107c10';
+      }
+    }
+
+    // Track impression event for this specific offer
+    trackEvent('SWAP', 'IMPRESSION', offer.id, 0);
+
+    var acceptBtn = document.getElementById('upsell-accept-btn');
+    if (acceptBtn) {
+      acceptBtn.onclick = async function() {
+        acceptBtn.disabled = true;
+        acceptBtn.textContent = 'Swapping items...';
+        try {
+          // Track conversion event for the swap
+          var gain = priceDiff > 0 ? priceDiff : 0;
+          trackEvent('SWAP', 'CONVERSION', offer.id, gain);
+
+          var upgradeVariantId = offer.upgradeProductId.replace('gid://shopify/ProductVariant/', '');
+          await fetch('/cart/change.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: String(pendingVariantId), quantity: 0 })
+          });
+          await fetch('/cart/add.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: [{ id: String(upgradeVariantId), quantity: parseInt(pendingQuantity) }] })
+          });
+          window.location.href = '/checkout';
+        } catch (err) {
+          console.error('[UpsellFlow] Swap error:', err);
+          resumeCheckout();
+        }
+      };
+    }
+
+    var declineBtn = document.getElementById('upsell-decline-btn');
+    if (declineBtn) {
+      declineBtn.onclick = function() {
+        modal.style.display = 'none';
+        resumeCheckout();
+      };
+    }
+
+    var closeBtn = document.getElementById('upsell-close-btn');
+    if (closeBtn) {
+      closeBtn.onclick = function() {
+        modal.style.display = 'none';
+        isIntercepted = false; // allow retry if they click checkout again
+      };
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  // ─── RESUME ORIGINAL CHECKOUT ────────────────────────────────────────────────
+  function resumeCheckout() {
+    isIntercepted = true;
+    if (checkoutButtonElement) {
+      checkoutButtonElement.click();
+    } else {
+      window.location.href = '/checkout';
+    }
+  }
+
+})();
+</script>
+
+
+{% schema %}
+{
+  "name": "Pre-Checkout Upsell",
+  "target": "head",
+  "settings": []
+}
+{% endschema %}
