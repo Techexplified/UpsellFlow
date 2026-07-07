@@ -1643,7 +1643,7 @@ export default function SettingsTemplatePage() {
                       Open Online Store Theme Editor
                     </h4>
                     <p style={{ margin: 0, fontSize: "13px", color: "#697386", lineHeight: "1.4" }}>
-                      Click the button below to open your Online Store Customizer. You will land on the **Home page** by default.
+                      Click the button below to open your Online Store Customizer. You will land on the <strong>Home page</strong> by default.
                     </p>
                   </div>
                 </div>
@@ -1672,7 +1672,7 @@ export default function SettingsTemplatePage() {
                       Open Product Template
                     </h4>
                     <p style={{ margin: 0, fontSize: "13px", color: "#697386", lineHeight: "1.4" }}>
-                      Select the **Products** template from the dropdown menu at the top of the editor page.
+                      Select the <strong>Products</strong> template from the dropdown menu at the top of the editor page.
                     </p>
                   </div>
                 </div>
@@ -1701,7 +1701,7 @@ export default function SettingsTemplatePage() {
                       Add "pre-checkout-upsell" Block
                     </h4>
                     <p style={{ margin: 0, fontSize: "13px", color: "#697386", lineHeight: "1.4" }}>
-                      Click **"Add block"** on the product page sections list, select **"pre-checkout-upsell"** under Apps, drag it below the buy buttons, and click **"Save"**.
+                      Click <strong>"Add block"</strong> on the product page sections list, select <strong>"pre-checkout-upsell"</strong> under Apps, drag it below the buy buttons, and click <strong>"Save"</strong>.
                     </p>
                   </div>
                 </div>
@@ -1749,7 +1749,7 @@ export default function SettingsTemplatePage() {
                       Open Shopify Theme Editor
                     </h4>
                     <p style={{ margin: 0, fontSize: "13px", color: "#697386", lineHeight: "1.4" }}>
-                      Click the button below to open your Shopify editor. You will land on the **Home page** by default.
+                      Click the button below to open your Shopify editor. You will land on the <strong>Home page</strong> by default.
                     </p>
                   </div>
                 </div>
@@ -1778,7 +1778,7 @@ export default function SettingsTemplatePage() {
                       Select Checkout & Customer Accounts
                     </h4>
                     <p style={{ margin: 0, fontSize: "13px", color: "#697386", lineHeight: "1.4" }}>
-                      Click the page dropdown menu at the top of the editor and select **"Checkout and customer accounts"**.
+                      Click the page dropdown menu at the top of the editor and select <strong>"Checkout and customer accounts"</strong>.
                     </p>
                   </div>
                 </div>
@@ -1807,7 +1807,7 @@ export default function SettingsTemplatePage() {
                       Enable on Thank You & Order Status Pages
                     </h4>
                     <p style={{ margin: 0, fontSize: "13px", color: "#697386", lineHeight: "1.4" }}>
-                      Switch the editor page to **"Thank you"**, click **"Add app block"** and select **"thank-you-upsell"**. Then switch the page to **"Order status"** and add the block there too. Click **"Save"**.
+                      Switch the editor page to <strong>"Thank you"</strong>, click <strong>"Add app block"</strong> and select <strong>"thank-you-upsell"</strong>. Then switch the page to <strong>"Order status"</strong> and add the block there too. Click <strong>"Save"</strong>.
                     </p>
                   </div>
                 </div>
