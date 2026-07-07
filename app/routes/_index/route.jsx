@@ -1,6 +1,4 @@
-import { redirect, Form, useLoaderData } from "react-router";
-import { login } from "../../shopify.server";
-import styles from "./styles.module.css";
+import { redirect } from "react-router";
 
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
@@ -9,45 +7,45 @@ export const loader = async ({ request }) => {
     throw redirect(`/app?${url.searchParams.toString()}`);
   }
 
-  return { showForm: Boolean(login) };
+  return null;
 };
 
 export default function App() {
-  const { showForm } = useLoaderData();
-
   return (
-    <div className={styles.index}>
-      <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
-        <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: "100vh",
+      width: "100%",
+      backgroundColor: "#f9fafb",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'San Francisco', 'Segoe UI', Roboto, Helvetica, sans-serif",
+      color: "#202223",
+      textAlign: "center",
+      padding: "20px",
+      boxSizing: "border-box"
+    }}>
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+      }}>
+        <h1 style={{
+          fontSize: "20px",
+          fontWeight: "500",
+          margin: 0,
+          color: "#1f2937",
+        }}>
+          UpsellFlow
+        </h1>
+        <p style={{
+          fontSize: "15px",
+          color: "#4b5563",
+          margin: 0,
+        }}>
+          Open this app from your Shopify admin to get started.
         </p>
-        {showForm && (
-          <Form className={styles.form} method="post" action="/auth/login">
-            <label className={styles.label}>
-              <span>Shop domain</span>
-              <input className={styles.input} type="text" name="shop" />
-              <span>e.g: my-shop-domain.myshopify.com</span>
-            </label>
-            <button className={styles.button} type="submit">
-              Log in
-            </button>
-          </Form>
-        )}
-        <ul className={styles.list}>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-        </ul>
       </div>
     </div>
   );
