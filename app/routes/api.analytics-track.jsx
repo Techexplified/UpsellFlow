@@ -5,7 +5,6 @@
  * real-time impressions and conversions into AnalyticsEvent table.
  */
 
-import db from "../shopify.server";
 import prisma from "../db.server";
 
 const CORS_HEADERS = {
